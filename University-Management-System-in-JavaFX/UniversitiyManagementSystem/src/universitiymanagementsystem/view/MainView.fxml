@@ -6,7 +6,7 @@
 <?import javafx.scene.chart.CategoryAxis?>
 <?import javafx.scene.chart.NumberAxis?>
 
-<StackPane fx:id="rootContainer" prefHeight="900.0" prefWidth="1440.0" stylesheets="@../../Design/ModernSaaS.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="universitiymanagementsystem.controller.MainController">
+<StackPane fx:id="rootContainer" stylesheets="@../../Design/ModernSaaS.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="universitiymanagementsystem.controller.MainController">
     <children>
         <BorderPane>
             <left>
@@ -62,9 +62,10 @@
             </left>
 
             <center>
-                <VBox spacing="20.0" styleClass="root">
-                    <padding><Insets bottom="24.0" left="24.0" right="24.0" top="24.0" /></padding>
-                    <children>
+                <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" styleClass="content-scroll">
+                    <VBox spacing="20.0" styleClass="content-vbox">
+                        <padding><Insets bottom="24.0" left="24.0" right="24.0" top="24.0" /></padding>
+                        <children>
                         <!-- Header Bar -->
                         <HBox alignment="CENTER_LEFT" spacing="15.0" styleClass="page-header-bar">
                             <children>
@@ -84,37 +85,36 @@
                                 <VBox fx:id="dashboardPane" spacing="20.0">
                                     <children>
                                         <!-- Stats Row -->
-                                        <HBox spacing="16.0">
-                                            <VBox styleClass="stat-card" HBox.hgrow="ALWAYS">
+                                        <FlowPane hgap="16.0" vgap="16.0" styleClass="stats-flow" prefWrapLength="1200.0">
+                                            <VBox styleClass="stat-card" prefWidth="240.0" minWidth="200.0">
                                                 <Label text="Toplam Öğrenci" />
                                                 <Label fx:id="totalStudentsLabel" styleClass="stat-value" text="0" />
                                                 <Label styleClass="stat-trend-up" text="↑ 12% bu dönem" />
                                             </VBox>
-                                            <VBox styleClass="stat-card" HBox.hgrow="ALWAYS">
+                                            <VBox styleClass="stat-card" prefWidth="240.0" minWidth="200.0">
                                                 <Label text="Akademisyen" />
                                                 <Label fx:id="totalTeachersLabel" styleClass="stat-value" text="0" />
                                                 <Label styleClass="stat-trend-up" text="↑ 3 yeni" />
                                             </VBox>
-                                            <VBox styleClass="stat-card" HBox.hgrow="ALWAYS">
+                                            <VBox styleClass="stat-card" prefWidth="240.0" minWidth="200.0">
                                                 <Label text="Aktif Ders" />
                                                 <Label fx:id="totalCoursesLabel" styleClass="stat-value" text="0" />
                                                 <Label styleClass="stat-trend-up" text="↑ 5% artış" />
                                             </VBox>
-                                            <VBox styleClass="stat-card" HBox.hgrow="ALWAYS">
-                                                <Label text="En Başarılı Öğrenci" />
-                                                <Label fx:id="topStudentLabel" styleClass="stat-value" text="-" />
-                                                <Label styleClass="stat-trend-up" text="GPA 4.00" />
+                                            <VBox styleClass="stat-card" prefWidth="240.0" minWidth="200.0">
+                                                <Label text="En Başarılı Öğrenci (MaxHeap)" />
+                                                <Label fx:id="topStudentLabel" styleClass="stat-value" text="-" wrapText="true" />
+                                                <Label styleClass="stat-trend-up" text="BST Size + Heap Top 3" />
                                             </VBox>
-                                        </HBox>
+                                        </FlowPane>
 
                                         <!-- Timeline + Chart Row -->
                                         <HBox spacing="16.0" VBox.vgrow="ALWAYS">
                                             <!-- Today's Schedule Timeline -->
-                                            <VBox styleClass="card" prefWidth="520.0" HBox.hgrow="ALWAYS">
+                                            <VBox styleClass="card" minWidth="300.0" HBox.hgrow="ALWAYS">
                                                 <children>
                                                     <HBox alignment="CENTER_LEFT">
                                                         <Label styleClass="section-header" text="Bugünün Programı">
-                                                            <font><javafx.scene.text.Font size="16.0" /></font>
                                                         </Label>
                                                         <Region HBox.hgrow="ALWAYS" />
                                                         <Label styleClass="badge badge-info" text="3 Etkinlik" />
@@ -124,11 +124,9 @@
                                             </VBox>
 
                                             <!-- GPA Chart -->
-                                            <VBox styleClass="card" prefWidth="420.0" HBox.hgrow="ALWAYS">
+                                            <VBox styleClass="card" minWidth="300.0" HBox.hgrow="ALWAYS">
                                                 <children>
-                                                    <Label styleClass="section-header" text="GPA Trendi">
-                                                        <font><javafx.scene.text.Font size="16.0" /></font>
-                                                    </Label>
+                                                    <Label styleClass="section-header" text="GPA Trendi" />
                                                     <LineChart fx:id="gpaChart" VBox.vgrow="ALWAYS" animated="false" legendVisible="false" verticalGridLinesVisible="true" horizontalGridLinesVisible="true">
                                                         <xAxis>
                                                             <CategoryAxis label="Dönem" />
@@ -143,22 +141,18 @@
 
                                         <!-- Action Required Row -->
                                         <VBox spacing="12.0">
-                                            <Label styleClass="section-header" text="İşlem Bekleyenler">
-                                                <font><javafx.scene.text.Font size="16.0" /></font>
-                                            </Label>
-                                            <HBox fx:id="actionCardsContainer" spacing="14.0" />
+                                            <Label styleClass="section-header" text="İşlem Bekleyenler" />
+                                            <FlowPane fx:id="actionCardsContainer" hgap="14.0" vgap="14.0" styleClass="action-flow" />
                                         </VBox>
 
                                         <!-- Recent Students Table -->
-                                        <VBox spacing="12.0" VBox.vgrow="ALWAYS">
+                                        <VBox spacing="12.0" VBox.vgrow="ALWAYS" minHeight="300.0">
                                             <HBox alignment="CENTER_LEFT">
-                                                <Label styleClass="section-header" text="Son Öğrenci Kayıtları">
-                                                    <font><javafx.scene.text.Font size="16.0" /></font>
-                                                </Label>
+                                                <Label styleClass="section-header" text="Son Öğrenci Kayıtları" />
                                                 <Region HBox.hgrow="ALWAYS" />
                                                 <Button onAction="#showStudents" styleClass="ghost-btn" text="Tümünü Gör" />
                                             </HBox>
-                                            <TableView fx:id="studentTable" VBox.vgrow="ALWAYS">
+                                            <TableView fx:id="studentTable" VBox.vgrow="ALWAYS" minHeight="300.0" prefHeight="400.0">
                                                 <columns>
                                                     <TableColumn fx:id="studentIdCol" text="No" />
                                                     <TableColumn fx:id="studentNameCol" text="Ad Soyad" />
@@ -403,8 +397,9 @@
                                 </VBox>
                             </children>
                         </StackPane>
-                    </children>
-                </VBox>
+                        </children>
+                    </VBox>
+                </ScrollPane>
             </center>
         </BorderPane>
     </children>

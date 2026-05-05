@@ -8,14 +8,12 @@ import universitiymanagementsystem.model.Message;
 import universitiymanagementsystem.model.ScholarshipApplication;
 import universitiymanagementsystem.model.Student;
 import universitiymanagementsystem.model.Teacher;
-import java.util.Random;
 import universitiymanagementsystem.repository.SQLiteStorage;
 import universitiymanagementsystem.repository.UniversityRepository;
 
 public class UniversityService {
 
     private final UniversityRepository repository = new UniversityRepository();
-    private final SQLiteStorage storage = new SQLiteStorage();
     private String currentUsername;
     private String currentRole;
 
@@ -24,7 +22,7 @@ public class UniversityService {
     }
 
     public boolean login(String username, String password) {
-        SQLiteStorage.LoginRecord user = storage.findUser(username);
+        SQLiteStorage.LoginRecord user = repository.findUser(username);
         if (user == null) {
             return false;
         }
@@ -36,40 +34,30 @@ public class UniversityService {
         return ok;
     }
 
+    public String getCurrentUsername() {
+        return currentUsername;
+    }
+
+    public String getCurrentRole() {
+        return currentRole;
+    }
+
     public String roleOf(String username) {
-        return currentRole == null ? "Kullanici" : currentRole;
+        SQLiteStorage.LoginRecord user = repository.findUser(username);
+        return user == null ? "Kullanici" : user.getRoleName();
+    }
+
+    // ---------- Öğrenci Yönetimi (BST O(log n)) ----------
+    public Student findStudentById(String id) {
+        return repository.findStudentById(id);
     }
 
     public Student[] students() {
         return repository.getStudents();
     }
 
-    public Teacher[] teachers() {
-        return repository.getTeachers();
-    }
-
-    public Course[] courses() {
-        return repository.getCourses();
-    }
-
     public int studentCount() {
         return repository.studentCount();
-    }
-
-    public int teacherCount() {
-        return repository.teacherCount();
-    }
-
-    public int courseCount() {
-        return repository.courseCount();
-    }
-
-    public String topStudentDisplay() {
-        return repository.topStudentDisplay();
-    }
-
-    public String[] recentActivities() {
-        return repository.getActivitySnapshot();
     }
 
     public boolean addStudent(Student student) {
@@ -77,6 +65,35 @@ public class UniversityService {
             return false;
         }
         return repository.addStudent(student);
+    }
+
+    public boolean deleteStudent(String id) {
+        return repository.deleteStudent(id);
+    }
+
+    public Student[] studentsSortedByGpa() {
+        return repository.getStudentsSortedByGpa();
+    }
+
+    public Student[] studentsSortedByName() {
+        return repository.getStudentsSortedByName();
+    }
+
+    public Student[] getTopStudents(int count) {
+        return repository.getTopStudents(count);
+    }
+
+    public String topStudentDisplay() {
+        return repository.topStudentDisplay();
+    }
+
+    // ---------- Öğretim Elemanı Yönetimi ----------
+    public Teacher[] teachers() {
+        return repository.getTeachers();
+    }
+
+    public int teacherCount() {
+        return repository.teacherCount();
     }
 
     public boolean addTeacher(Teacher teacher) {
@@ -88,11 +105,28 @@ public class UniversityService {
         return repository.addTeacher(teacher);
     }
 
+    public boolean deleteTeacher(String id) {
+        return repository.deleteTeacher(id);
+    }
+
+    // ---------- Ders ve Önkoşul Yönetimi (DirectedGraph) ----------
+    public Course[] courses() {
+        return repository.getCourses();
+    }
+
+    public int courseCount() {
+        return repository.courseCount();
+    }
+
     public boolean addCourse(Course course) {
         if (!ValidationUtil.validCourseCode(course.getCode()) || course.getCredit() <= 0) {
             return false;
         }
         return repository.addCourse(course);
+    }
+
+    public boolean deleteCourse(String code) {
+        return repository.deleteCourse(code);
     }
 
     public boolean addPrerequisite(String prerequisite, String target) {
@@ -102,6 +136,10 @@ public class UniversityService {
         return repository.addPrerequisite(prerequisite, target);
     }
 
+    public boolean canStudentTakeCourse(String studentId, String courseCode) {
+        return repository.canEnroll(studentId, courseCode);
+    }
+
     public boolean enrollStudent(String studentId, String courseCode) {
         if (!ValidationUtil.validId(studentId) || !ValidationUtil.validCourseCode(courseCode)) {
             return false;
@@ -109,24 +147,8 @@ public class UniversityService {
         return repository.enrollStudent(studentId, courseCode);
     }
 
-    public boolean undo() {
-        return repository.undoLastOperation();
-    }
-
-    public boolean redo() {
-        return repository.redoLastOperation();
-    }
-
     public String[] buildPlan(String studentId) {
         return repository.buildCoursePlanForStudent(studentId);
-    }
-
-    public Student[] studentsSortedByGpa() {
-        return repository.getStudentsSortedByGpa();
-    }
-
-    public Student[] studentsSortedByName() {
-        return repository.getStudentsSortedByName();
     }
 
     public String[] prerequisiteEdges() {
@@ -137,16 +159,54 @@ public class UniversityService {
         return repository.hasCycleInPrerequisites();
     }
 
-    public void enqueueScholarship(ScholarshipApplication app) {
-        repository.enqueueScholarship(app);
+    // ---------- Başarı ve Not Sıralaması (MaxHeap + Deterministik) ----------
+    public GpaRecord[] getGpaHistory() {
+        Student[] all = repository.getStudents();
+        double baseAvg = 2.85;
+        if (all.length > 0) {
+            double sum = 0;
+            for (Student s : all) {
+                sum += s.getGpa();
+            }
+            baseAvg = sum / all.length;
+        }
+        String[] semesters = {"2023-Güz", "2024-Bahar", "2024-Güz", "2025-Bahar", "2025-Güz", "2026-Bahar"};
+        GpaRecord[] records = new GpaRecord[semesters.length];
+        for (int i = 0; i < semesters.length; i++) {
+            double variation = (i - semesters.length / 2.0) * 0.08;
+            double gpa = Math.max(1.0, Math.min(4.0, baseAvg + variation));
+            records[i] = new GpaRecord(semesters[i], Math.round(gpa * 100.0) / 100.0);
+        }
+        return records;
     }
 
-    public ScholarshipApplication dequeueScholarship() {
-        return repository.dequeueScholarship();
+    public GpaRecord[] getStudentGpaHistory(String studentId) {
+        Student student = findStudentById(studentId);
+        if (student == null) {
+            return new GpaRecord[0];
+        }
+        String[] semesters = {"2023-Güz", "2024-Bahar", "2024-Güz", "2025-Bahar", "2025-Güz", "2026-Bahar"};
+        GpaRecord[] records = new GpaRecord[semesters.length];
+        double base = student.getGpa();
+        for (int i = 0; i < semesters.length; i++) {
+            double variation = (i - semesters.length / 2.0) * 0.1;
+            double semGpa = Math.max(1.0, Math.min(4.0, base + variation));
+            records[i] = new GpaRecord(semesters[i], Math.round(semGpa * 100.0) / 100.0);
+        }
+        return records;
     }
 
-    public ScholarshipApplication[] scholarshipQueue() {
-        return repository.scholarshipQueueArray();
+    // ---------- Duyuru ve Mesajlaşma (CustomQueue / CustomStack) ----------
+    public void sendMessage(Message msg) {
+        repository.sendMessage(msg);
+    }
+
+    public Message[] messages() {
+        return repository.messageArray();
+    }
+
+    public Message[] unreadMessagesFor(String recipient) {
+        return repository.getUnreadMessages(recipient);
     }
 
     public void pushAnnouncement(Announcement ann) {
@@ -161,79 +221,38 @@ public class UniversityService {
         return repository.announcementStackArray();
     }
 
-    public boolean deleteStudent(String id) {
-        return repository.deleteStudent(id);
+    public Announcement[] recentAnnouncements(int limit) {
+        return repository.getRecentAnnouncements(limit);
     }
 
-    public boolean deleteTeacher(String id) {
-        return repository.deleteTeacher(id);
+    // ---------- Burs Başvuruları (CustomQueue) ----------
+    public void enqueueScholarship(ScholarshipApplication app) {
+        repository.enqueueScholarship(app);
     }
 
-    public boolean deleteCourse(String code) {
-        return repository.deleteCourse(code);
+    public ScholarshipApplication dequeueScholarship() {
+        return repository.dequeueScholarship();
     }
 
-    public void sendMessage(Message msg) {
-        repository.sendMessage(msg);
+    public ScholarshipApplication[] scholarshipQueue() {
+        return repository.scholarshipQueueArray();
     }
 
-    public Message[] messages() {
-        return repository.messageArray();
+    // ---------- İşlem Geçmişi / Geri Al (CustomStack / CustomQueue) ----------
+    public boolean undo() {
+        return repository.undoLastOperation();
     }
 
-    public GpaRecord[] getGpaHistory() {
-        Student[] all = repository.getStudents();
-        String[] semesters = {"2023-Güz", "2024-Bahar", "2024-Güz", "2025-Bahar", "2025-Güz", "2026-Bahar"};
-        GpaRecord[] records = new GpaRecord[semesters.length];
-        
-        if (all.length == 0) {
-            records[0] = new GpaRecord("2023-Güz", 2.45);
-            records[1] = new GpaRecord("2024-Bahar", 2.62);
-            records[2] = new GpaRecord("2024-Güz", 2.78);
-            records[3] = new GpaRecord("2025-Bahar", 2.95);
-            records[4] = new GpaRecord("2025-Güz", 3.12);
-            records[5] = new GpaRecord("2026-Bahar", 3.28);
-            return records;
-        }
-        
-        Random rand = new Random(42);
-        for (int i = 0; i < semesters.length; i++) {
-            double sum = 0;
-            for (Student s : all) {
-                double base = s.getGpa();
-                double variation = (i - semesters.length / 2.0) * 0.08 + (rand.nextDouble() - 0.5) * 0.3;
-                double semGpa = Math.max(1.0, Math.min(4.0, base + variation));
-                sum += semGpa;
-            }
-            records[i] = new GpaRecord(semesters[i], sum / all.length);
-        }
-        return records;
+    public boolean redo() {
+        return repository.redoLastOperation();
     }
 
-    public GpaRecord[] getStudentGpaHistory(String studentId) {
-        Student student = null;
-        for (Student s : repository.getStudents()) {
-            if (s.getId().equals(studentId)) {
-                student = s;
-                break;
-            }
-        }
-        if (student == null) {
-            return new GpaRecord[0];
-        }
-        String[] semesters = {"2023-Güz", "2024-Bahar", "2024-Güz", "2025-Bahar", "2025-Güz", "2026-Bahar"};
-        GpaRecord[] records = new GpaRecord[semesters.length];
-        Random rand = new Random(studentId.hashCode());
-        double base = student.getGpa();
-        for (int i = 0; i < semesters.length; i++) {
-            double variation = (i - semesters.length / 2.0) * 0.1 + (rand.nextDouble() - 0.5) * 0.4;
-            double semGpa = Math.max(1.0, Math.min(4.0, base + variation));
-            records[i] = new GpaRecord(semesters[i], Math.round(semGpa * 100.0) / 100.0);
-        }
-        return records;
+    public String[] recentActivities() {
+        return repository.getActivitySnapshot();
     }
 
+    // ---------- Diğer ----------
     public void shutdown() {
-        // No manual save needed as operations are granular and sync now
+        // Bellek yapıları zaten granular olarak senkronize
     }
 }

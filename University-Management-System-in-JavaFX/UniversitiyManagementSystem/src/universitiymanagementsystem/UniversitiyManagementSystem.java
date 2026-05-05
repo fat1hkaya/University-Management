@@ -36,7 +36,7 @@ public class UniversitiyManagementSystem extends Application {
         Scene scene = new Scene(root);
         
         stage.setTitle("Universite Veri Yapisi Otomasyonu");
-        
+        stage.setResizable(true);
         stage.setScene(scene);
         stage.show();
     }
@@ -47,7 +47,13 @@ public class UniversitiyManagementSystem extends Application {
             Parent root = loader.load();
             MainController controller = loader.getController();
             controller.setDependencies(service, username, roleName);
-            primaryStage.setScene(new Scene(root));
+            // Ekran boyutuna göre makul bir başlangıç boyutu ver
+            javafx.geometry.Rectangle2D screen = javafx.stage.Screen.getPrimary().getVisualBounds();
+            double w = Math.min(1280, screen.getWidth() * 0.92);
+            double h = Math.min(800, screen.getHeight() * 0.92);
+            primaryStage.setScene(new Scene(root, w, h));
+            primaryStage.setMinWidth(900);
+            primaryStage.setMinHeight(600);
             primaryStage.centerOnScreen();
         } catch (Exception ex) {
             throw new RuntimeException("Ana panel açılırken hata oluştu.", ex);

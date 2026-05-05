@@ -6,6 +6,7 @@ universitiymanagementsystem\datastructures\CustomQueue$Node.class
 universitiymanagementsystem\repository\SQLiteStorage$LoginRecord.class
 universitiymanagementsystem\viewmodel\ExamRow.class
 universitiymanagementsystem\repository\SQLiteStorage.class
+universitiymanagementsystem\repository\SQLiteStorage$PreparedStatementBinder.class
 universitiymanagementsystem\service\UniversityService.class
 universitiymanagementsystem\datastructures\DirectedGraph$Edge.class
 universitiymanagementsystem\model\Course.class
@@ -32,6 +33,8 @@ universitiymanagementsystem\datastructures\DoublyLinkedList$Node.class
 universitiymanagementsystem\model\Teacher.class
 universitiymanagementsystem\datastructures\BST$Node.class
 universitiymanagementsystem\controller\MainController$5.class
+universitiymanagementsystem\repository\SQLiteStorage$BatchBinder.class
+universitiymanagementsystem\repository\SQLiteStorage$ResultSetMapper.class
 universitiymanagementsystem\repository\UniversityRepository$Command.class
 universitiymanagementsystem\datastructures\CustomStack.class
 universitiymanagementsystem\datastructures\DirectedGraph.class

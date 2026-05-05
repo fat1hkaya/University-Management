@@ -156,6 +156,28 @@ public class DirectedGraph<T> {
     }
 
     /**
+     * Returns direct prerequisites (immediate parent nodes) for a given course.
+     */
+    public DoublyLinkedList<T> getDirectPrerequisites(T course) {
+        DoublyLinkedList<T> result = new DoublyLinkedList<>();
+        Vertex<T> target = findVertex(course);
+        if (target == null) return result;
+
+        Vertex<T> curr = verticesHead;
+        while (curr != null) {
+            Edge<T> e = curr.headEdge;
+            while (e != null) {
+                if (e.destination == target) {
+                    result.addLast(curr.data);
+                }
+                e = e.nextEdge;
+            }
+            curr = curr.nextVertex;
+        }
+        return result;
+    }
+
+    /**
      * Returns all courses as an array.
      */
     @SuppressWarnings("unchecked")

@@ -1,8 +1,6 @@
 package universitiymanagementsystem.controller;
 
 import java.net.URL;
-import java.util.Comparator;
-import java.util.List;
 import java.util.ResourceBundle;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
@@ -27,6 +25,7 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
 import javafx.scene.chart.LineChart;
@@ -45,8 +44,6 @@ import universitiymanagementsystem.viewmodel.ExamRow;
 import universitiymanagementsystem.viewmodel.GradeRow;
 
 public class MainController implements Initializable {
-
-    @FXML private Parent rootContainer;
     @FXML private Label welcomeRoleLabel;
     @FXML private Label breadcrumbLabel;
     @FXML private Label totalStudentsLabel;
@@ -186,26 +183,25 @@ public class MainController implements Initializable {
     @FXML private TableColumn<Message, String> msgDateCol;
     @FXML private TableColumn<Message, String> msgReadCol;
 
-    @FXML private LineChart<String, Number> gpaChart;
-    @FXML private VBox timelineContainer;
-    @FXML private HBox actionCardsContainer;
+public class MainController implements Initializable {
 
     @FXML private TextField msgSenderInput;
     @FXML private TextField msgRecipientInput;
     @FXML private TextField msgSubjectInput;
     @FXML private TextField msgContentInput;
 
-    private UniversityService service;
+    @FXML private LineChart<String, Number> gpaChart;
+    @FXML private VBox timelineContainer;
+    @FXML private FlowPane actionCardsContainer;
     private ObservableList<Student> allStudents = FXCollections.observableArrayList();
     private ObservableList<Teacher> allTeachers = FXCollections.observableArrayList();
     private ObservableList<Course> allCourses = FXCollections.observableArrayList();
 
-    private String editingStudentId = null;
+    private UniversityService service;
     private String editingTeacherId = null;
     private String editingCourseCode = null;
 
-    @Override
-    public void initialize(URL location, ResourceBundle resources) {
+    private String editingStudentId = null;
         setupStudentColumns(studentIdCol, studentNameCol, studentDeptCol, studentRegDateCol,
                 studentEctsCol, studentGpaCol, studentStatusCol, studentActionsCol);
         setupStudentColumns(studentIdCol2, studentNameCol2, studentDeptCol2, studentRegDateCol2,
@@ -274,8 +270,12 @@ public class MainController implements Initializable {
 
         setupBadgeColumns();
         setupClickableRows();
-        buildTimeline();
-        buildActionCards();
+
+        // Tabloları ObservableList'e başlangıçta bağla — setDependencies() çağrılmadan önce boş görünmez
+        studentTable.setItems(allStudents);
+        studentTable2.setItems(allStudents);
+        teacherTable.setItems(allTeachers);
+        courseTable.setItems(allCourses);
 
         showDashboard();
     }
@@ -318,6 +318,8 @@ public class MainController implements Initializable {
         this.welcomeRoleLabel.setText("Kullanıcı: " + username + " | Yetki: " + roleName);
         refreshAll();
         refreshGpaChart();
+        refreshTimeline();
+        refreshActionCards();
     }
 
     @FXML private void showDashboard() {
@@ -644,10 +646,12 @@ public class MainController implements Initializable {
     private void refreshExams() {
         if (service == null) return;
         ObservableList<ExamRow> exams = FXCollections.observableArrayList();
-        exams.add(new ExamRow("CS101 - Programlama Temelleri", "2026-05-15", 95, "Vize"));
-        exams.add(new ExamRow("IT204 - Veri Yapıları", "2026-05-18", 90, "Vize"));
-        exams.add(new ExamRow("SE301 - Yazılım Mimarisi", "2026-05-20", 85, "Vize"));
-        exams.add(new ExamRow("AI305 - Yapay Zekaya Giriş", "2026-05-22", 88, "Vize"));
+        Course[] courses = service.courses();
+        int priority = 100;
+        for (Course c : courses) {
+            exams.add(new ExamRow(c.getCode() + " - " + c.getTitle(), c.getSchedule(), priority, "Aktif"));
+            priority -= 5;
+        }
         exams.sort((e1, e2) -> Integer.compare(e2.priority, e1.priority));
         examTable.setItems(exams);
     }
@@ -688,9 +692,12 @@ public class MainController implements Initializable {
     }
 
     private void refreshAll() {
+        if (service == null) return;
         allStudents.setAll(service.students());
         allTeachers.setAll(service.teachers());
         allCourses.setAll(service.courses());
+        // setItems() initialize() içinde zaten bağlandı, tekrar çağırmaya gerek yok
+        // ama ilk çağrıda henüz bağlanmamış olabilir, güvenli olsun diye bırakıyoruz
         studentTable.setItems(allStudents);
         studentTable2.setItems(allStudents);
         teacherTable.setItems(allTeachers);
@@ -699,7 +706,16 @@ public class MainController implements Initializable {
         totalStudentsLabel.setText(String.valueOf(service.studentCount()));
         totalTeachersLabel.setText(String.valueOf(service.teacherCount()));
         totalCoursesLabel.setText(String.valueOf(service.courseCount()));
-        topStudentLabel.setText(service.topStudentDisplay());
+
+        Student[] top3 = service.getTopStudents(3);
+        StringBuilder topText = new StringBuilder();
+        for (int i = 0; i < top3.length; i++) {
+            topText.append(String.format("%d. %s (%.2f)%s", i + 1, top3[i].getFullName(), top3[i].getGpa(), (i < top3.length - 1 ? "\n" : "")));
+        }
+        topStudentLabel.setText(topText.length() > 0 ? topText.toString() : "-");
+
+        refreshTimeline();
+        refreshActionCards();
     }
 
     private void clearStudentInputs() {
@@ -746,10 +762,15 @@ public class MainController implements Initializable {
         Task<String> task = new Task<String>() {
             @Override protected String call() throws Exception { return supplier.get(); }
         };
-        task.setOnSucceeded(e -> {
+        task.setOnSucceeded(e -> Platform.runLater(() -> {
             if (onSuccessCleanup != null) onSuccessCleanup.run();
-            refreshAll();
-        });
+            if (service != null) refreshAll();
+        }));
+        task.setOnFailed(e -> Platform.runLater(() -> {
+            // Hata durumunda sessizce logla
+            Throwable ex = task.getException();
+            System.err.println(errorMessage + (ex != null ? ": " + ex.getMessage() : ""));
+        }));
         new Thread(task, "db-action-task").start();
     }
 
@@ -870,18 +891,18 @@ public class MainController implements Initializable {
     }
 
     /* ============================================================
-       TIMELINE WIDGET
+       TIMELINE WIDGET — Dinamik: Courses verisi üzerinden
        ============================================================ */
-    private void buildTimeline() {
+    private void refreshTimeline() {
+        if (service == null || timelineContainer == null) return;
         timelineContainer.getChildren().clear();
-        String[][] items = {
-            {"08:30", "BLM2006.2 - Bilgisayar Ağlarına Giriş", "Recep Tayyip Erdoğan Maltepe Kül. RTE.T2.Z01", "completed"},
-            {"10:30", "BLM2008.2 - Mikroişlemciler", "Recep Tayyip Erdoğan Maltepe Kül. RTE.T2.Z07", "completed"},
-            {"13:00", "BLM2010.2 - Elektronik Devrelere Giriş", "Recep Tayyip Erdoğan Maltepe Kül. RTE.T2.Z01", "pending"},
-            {"15:00", "BLM3062.1 - Açık Kaynak Kodlu Yazılımlar", "Recep Tayyip Erdoğan Maltepe Kül. RTE.T2.Z08", "pending"}
-        };
-        for (int i = 0; i < items.length; i++) {
-            String[] it = items[i];
+        Course[] courses = service.courses();
+        String[] sampleTimes = {"08:30", "10:30", "13:00", "15:00", "17:00"};
+        for (int i = 0; i < courses.length && i < sampleTimes.length; i++) {
+            Course c = courses[i];
+            String schedule = c.getSchedule() != null && !c.getSchedule().isEmpty() ? c.getSchedule() : sampleTimes[i];
+            String status = i < 2 ? "completed" : "pending";
+
             HBox row = new HBox(12);
             row.setAlignment(Pos.CENTER_LEFT);
             row.setPadding(new Insets(8, 0, 8, 0));
@@ -890,7 +911,7 @@ public class MainController implements Initializable {
             left.setAlignment(Pos.CENTER);
             left.setMinWidth(28);
             Circle dot = new Circle(6);
-            if (it[3].equals("completed")) {
+            if (status.equals("completed")) {
                 dot.setFill(javafx.scene.paint.Color.web("#10B981"));
                 dot.setStroke(javafx.scene.paint.Color.web("#D1FAE5"));
             } else {
@@ -899,7 +920,7 @@ public class MainController implements Initializable {
             }
             dot.setStrokeWidth(3);
             left.getChildren().add(dot);
-            if (i < items.length - 1) {
+            if (i < courses.length - 1 && i < sampleTimes.length - 1) {
                 Line line = new Line(0, 0, 0, 32);
                 line.setStroke(javafx.scene.paint.Color.web("#E2E8F0"));
                 line.setStrokeWidth(2);
@@ -908,11 +929,11 @@ public class MainController implements Initializable {
 
             VBox content = new VBox(3);
             content.setAlignment(Pos.CENTER_LEFT);
-            Label timeLbl = new Label(it[0]);
+            Label timeLbl = new Label(schedule);
             timeLbl.setStyle("-fx-text-fill: #64748B; -fx-font-size: 12px; -fx-font-weight: 600; -fx-min-width: 50px;");
-            Label titleLbl = new Label(it[1]);
+            Label titleLbl = new Label(c.getCode() + " - " + c.getTitle());
             titleLbl.setStyle("-fx-text-fill: #0F2744; -fx-font-size: 14px; -fx-font-weight: 600;");
-            Label subLbl = new Label(it[2]);
+            Label subLbl = new Label(c.getDepartment() + " | " + c.getClassroom());
             subLbl.setStyle("-fx-text-fill: #64748B; -fx-font-size: 12px;");
 
             HBox top = new HBox(10);
@@ -926,17 +947,19 @@ public class MainController implements Initializable {
     }
 
     /* ============================================================
-       ACTION CARDS
+       ACTION CARDS — Dinamik: Son duyurular (Announcement Stack / Queue)
        ============================================================ */
-    private void buildActionCards() {
+    private void refreshActionCards() {
+        if (service == null || actionCardsContainer == null) return;
         actionCardsContainer.getChildren().clear();
-        String[][] cards = {
-            {"Burs Başvurusu Onayı", "3 yeni burs başvurusu değerlendirme bekliyor.", "Bugün, 14:00", "warning"},
-            {"Sınav Programı Onay", "2026 Bahar dönemi sınav programı yayınlandı.", "Dün", "info"},
-            {"Ders Kayıt Uyarısı", "12 öğrenci zorunlu ders seçimi tamamlamadı.", "2 gün önce", "danger"},
-            {"Akademik Takvim", "Ara sınav dönemi başlangıcı: 12 Mayıs 2026", "3 gün önce", "neutral"}
-        };
-        for (String[] c : cards) {
+        Announcement[] announcements = service.recentAnnouncements(4);
+        String[] badges = {"Beklemede", "Yeni", "Acil", "Bilgi"};
+        String[] styles = {"warning", "info", "danger", "neutral"};
+        for (int i = 0; i < announcements.length; i++) {
+            Announcement ann = announcements[i];
+            String badgeType = styles[i % styles.length];
+            String badgeText = badges[i % badges.length];
+
             VBox card = new VBox(8);
             card.setPadding(new Insets(16));
             card.setMinWidth(240);
@@ -964,19 +987,19 @@ public class MainController implements Initializable {
                 card.setEffect(out);
             });
 
-            Label title = new Label(c[0]);
+            Label title = new Label(ann.getTitle());
             title.setStyle("-fx-text-fill: #0F2744; -fx-font-size: 14px; -fx-font-weight: 600;");
-            Label desc = new Label(c[1]);
+            Label desc = new Label(ann.getContent());
             desc.setWrapText(true);
             desc.setStyle("-fx-text-fill: #64748B; -fx-font-size: 12px;");
-            Label meta = new Label(c[2]);
+            Label meta = new Label(ann.getDate() + " — " + ann.getAuthor());
             meta.setStyle("-fx-text-fill: #94A3B8; -fx-font-size: 11px;");
 
-            String badgeColor = c[3].equals("warning") ? "#FEF3C7; -fx-text-fill: #92400E;"
-                : c[3].equals("info") ? "#DBEAFE; -fx-text-fill: #1E40AF;"
-                : c[3].equals("danger") ? "#FEE2E2; -fx-text-fill: #991B1B;"
+            String badgeColor = badgeType.equals("warning") ? "#FEF3C7; -fx-text-fill: #92400E;"
+                : badgeType.equals("info") ? "#DBEAFE; -fx-text-fill: #1E40AF;"
+                : badgeType.equals("danger") ? "#FEE2E2; -fx-text-fill: #991B1B;"
                 : "#F1F5F9; -fx-text-fill: #475569;";
-            Label badge = new Label(c[3].equals("warning") ? "Beklemede" : c[3].equals("info") ? "Yeni" : c[3].equals("danger") ? "Acil" : "Bilgi");
+            Label badge = new Label(badgeText);
             badge.setStyle("-fx-background-radius: 20px; -fx-padding: 3 10; -fx-font-size: 10px; -fx-font-weight: 700; -fx-background-color: " + badgeColor);
 
             HBox top = new HBox(8);

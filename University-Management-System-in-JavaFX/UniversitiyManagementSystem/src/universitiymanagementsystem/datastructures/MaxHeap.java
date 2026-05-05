@@ -7,7 +7,7 @@ public class MaxHeap<T> {
     private T[] heap;
     private int size;
     private final Comparator<T> comparator;
-    private final int capacity;
+    private int capacity;
 
     @SuppressWarnings("unchecked")
     public MaxHeap(int capacity, Comparator<T> comparator) {
@@ -18,7 +18,9 @@ public class MaxHeap<T> {
     }
 
     public void insert(T item) {
-        if (size >= capacity) return;
+        if (size >= capacity) {
+            resize();
+        }
         heap[size] = item;
         heapifyUp(size);
         size++;
@@ -102,5 +104,14 @@ public class MaxHeap<T> {
         T temp = heap[i];
         heap[i] = heap[j];
         heap[j] = temp;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void resize() {
+        int newCapacity = Math.max(capacity * 2, 10);
+        T[] newHeap = (T[]) new Object[newCapacity];
+        System.arraycopy(heap, 0, newHeap, 0, size);
+        heap = newHeap;
+        capacity = newCapacity;
     }
 }

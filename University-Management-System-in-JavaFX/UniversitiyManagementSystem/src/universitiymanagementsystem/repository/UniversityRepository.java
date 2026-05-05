@@ -41,20 +41,7 @@ public class UniversityRepository {
         } else {
             seed();
             pushActivity("Ilk kurulum verileri olusturuldu.");
-            syncAllToDatabase();
         }
-    }
-
-    private void syncAllToDatabase() {
-        for (Student s : getStudents()) storage.upsertStudent(s);
-        for (Teacher t : getTeachers()) storage.upsertTeacher(t);
-        for (Course c : getCourses()) storage.upsertCourse(c);
-        // Enrollments and other data are handled in seed() or importSnapshot()
-        syncActivities();
-    }
-
-    public void saveToDatabase() {
-        // Not used anymore due to granular sync, but kept for compatibility
     }
 
     public boolean addStudent(Student student) {
@@ -129,6 +116,9 @@ public class UniversityRepository {
 
     public boolean enrollStudent(String studentId, String courseCode) {
         if (studentsById.search(studentId) == null || coursesByCode.search(courseCode) == null) {
+            return false;
+        }
+        if (!canEnroll(studentId, courseCode)) {
             return false;
         }
         DoublyLinkedList<String> enrollments = studentCourseIndex.search(studentId);
@@ -275,6 +265,70 @@ public class UniversityRepository {
         return activityLog.toArray(new String[0]);
     }
 
+    public Student findStudentById(String id) {
+        return studentsById.search(id);
+    }
+
+    public boolean canEnroll(String studentId, String courseCode) {
+        if (studentsById.search(studentId) == null || coursesByCode.search(courseCode) == null) {
+            return false;
+        }
+        DoublyLinkedList<String> prerequisites = prerequisiteGraph.getDirectPrerequisites(courseCode);
+        DoublyLinkedList<String> taken = studentCourseIndex.search(studentId);
+        if (taken == null) {
+            taken = new DoublyLinkedList<>();
+        }
+        for (String prereq : prerequisites) {
+            boolean found = false;
+            for (String t : taken) {
+                if (t.equals(prereq)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public Student[] getTopStudents(int count) {
+        if (count <= 0 || topStudents.isEmpty()) {
+            return new Student[0];
+        }
+        Student[] temp = topStudents.toArray(new Student[0]);
+        MaxHeap<Student> copy = new MaxHeap<>(Math.max(count, temp.length), (s1, s2) -> Double.compare(s1.getGpa(), s2.getGpa()));
+        for (Student s : temp) {
+            copy.insert(s);
+        }
+        int resultSize = Math.min(count, copy.size());
+        Student[] result = new Student[resultSize];
+        for (int i = 0; i < resultSize; i++) {
+            result[i] = copy.extractMax();
+        }
+        return result;
+    }
+
+    public Message[] getUnreadMessages(String recipient) {
+        DoublyLinkedList<Message> unread = new DoublyLinkedList<>();
+        Message[] all = messageQueue.toArray(new Message[0]);
+        for (Message m : all) {
+            if (m.getRecipient().equals(recipient) && !m.isRead()) {
+                unread.addLast(m);
+            }
+        }
+        return unread.toArray(new Message[0]);
+    }
+
+    public Announcement[] getRecentAnnouncements(int limit) {
+        Announcement[] all = announcementStack.toArray(new Announcement[0]);
+        int resultSize = Math.min(limit, all.length);
+        Announcement[] result = new Announcement[resultSize];
+        System.arraycopy(all, 0, result, 0, resultSize);
+        return result;
+    }
+
     public int studentCount() {
         return studentsById.size();
     }
@@ -412,7 +466,11 @@ public class UniversityRepository {
 
         sendMessage(new Message("Öğrenci İşleri", "S-001", "Ders Kayıt Onayı", "2026-2027 Bahar dönemi ders kaydınız onaylanmıştır.", "2026-04-20", true));
         sendMessage(new Message("Dr. Aylin Kara", "S-001", "Proje Teslimi", "Proje raporunuzu Pazartesi gününe kadar yükleyiniz.", "2026-04-21", false));
-        sendMessage(new Message("S-002", "Dr. Aylin Kara", "Devamsızlık Bilgisi", "Mazeretli devamsızlık dilekçem ektedir.", "2026-04-22", false));
+        sendMessage(new Message("S-002", "Dr. Aylin Kara", "Devamsizlik Bilgisi", "Mazeretli devamsizlik dilekcem ektedir.", "2026-04-22", false));
+
+        undoStack.clear();
+        redoQueue.clear();
+        persist();
     }
 
     private void resetMemory() {
@@ -431,28 +489,79 @@ public class UniversityRepository {
     }
 
     private void importSnapshot(SQLiteStorage.Snapshot snapshot) {
-        for (Course course : snapshot.courses) {
-            addCourse(course);
+        for (Course c : snapshot.courses) {
+            coursesByCode.insert(c.getCode(), c);
+            prerequisiteGraph.addVertex(c.getCode());
         }
-        for (Teacher teacher : snapshot.teachers) {
-            addTeacher(teacher);
+        for (Teacher t : snapshot.teachers) {
+            teachersById.insert(t.getId(), t);
         }
-        for (Student student : snapshot.students) {
-            addStudent(student);
+        for (Student s : snapshot.students) {
+            studentsById.insert(s.getId(), s);
+            studentCourseIndex.insert(s.getId(), new DoublyLinkedList<>());
+            topStudents.insert(s);
         }
         for (String[] pair : snapshot.enrollments) {
-            enrollStudent(pair[0], pair[1]);
+            DoublyLinkedList<String> list = studentCourseIndex.search(pair[0]);
+            if (list == null) {
+                list = new DoublyLinkedList<>();
+                studentCourseIndex.insert(pair[0], list);
+            }
+            list.addLast(pair[1]);
         }
         for (String[] pair : snapshot.prerequisites) {
-            addPrerequisite(pair[0], pair[1]);
+            prerequisiteGraph.addEdge(pair[0], pair[1]);
         }
-        
+        for (Announcement a : snapshot.announcements) {
+            announcementStack.push(a);
+        }
+        for (Message m : snapshot.messages) {
+            messageQueue.enqueue(m);
+        }
+        for (ScholarshipApplication app : snapshot.scholarshipApplications) {
+            scholarshipQueue.enqueue(app);
+        }
+        activityLog.clear();
         if (!snapshot.activities.isEmpty()) {
-            activityLog.clear();
             for (int i = snapshot.activities.size() - 1; i >= 0; i--) {
                 activityLog.addFirst(snapshot.activities.get(i));
             }
         }
+        undoStack.clear();
+        redoQueue.clear();
+    }
+
+    public SQLiteStorage.LoginRecord findUser(String username) {
+        return storage.findUser(username);
+    }
+
+    private SQLiteStorage.Snapshot buildSnapshot() {
+        SQLiteStorage.Snapshot s = new SQLiteStorage.Snapshot();
+        for (Student st : getStudents()) s.students.add(st);
+        for (Teacher t : getTeachers()) s.teachers.add(t);
+        for (Course c : getCourses()) s.courses.add(c);
+        for (Student st : getStudents()) {
+            DoublyLinkedList<String> taken = studentCourseIndex.search(st.getId());
+            if (taken != null) {
+                for (String code : taken) {
+                    s.enrollments.add(new String[]{st.getId(), code});
+                }
+            }
+        }
+        for (String target : prerequisiteGraph.getAllVertices(new String[0])) {
+            for (String prereq : prerequisiteGraph.getDirectPrerequisites(target)) {
+                s.prerequisites.add(new String[]{prereq, target});
+            }
+        }
+        for (Announcement a : announcementStackArray()) s.announcements.add(a);
+        for (Message m : messageArray()) s.messages.add(m);
+        for (ScholarshipApplication app : scholarshipQueueArray()) s.scholarshipApplications.add(app);
+        for (String act : getActivitySnapshot()) s.activities.add(act);
+        return s;
+    }
+
+    private void persist() {
+        storage.saveSnapshot(buildSnapshot());
     }
 
     private static final class Command {
