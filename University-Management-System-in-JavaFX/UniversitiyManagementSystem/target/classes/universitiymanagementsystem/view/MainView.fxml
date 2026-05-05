@@ -1,0 +1,411 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.chart.LineChart?>
+<?import javafx.scene.chart.CategoryAxis?>
+<?import javafx.scene.chart.NumberAxis?>
+
+<StackPane fx:id="rootContainer" prefHeight="900.0" prefWidth="1440.0" stylesheets="@../../Design/ModernSaaS.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="universitiymanagementsystem.controller.MainController">
+    <children>
+        <BorderPane>
+            <left>
+                <VBox prefWidth="260.0" spacing="0.0" styleClass="sidebar">
+                    <padding><Insets bottom="20.0" left="16.0" right="16.0" top="24.0" /></padding>
+                    <children>
+                        <VBox alignment="CENTER_LEFT" spacing="6.0">
+                            <children>
+                                <Label styleClass="sidebar-title" text="Marmara Üniversitesi" />
+                                <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                    <children>
+                                        <Label styleClass="sidebar-user" text="Admin" />
+                                        <Label styleClass="badge-admin" text="Yönetici" />
+                                    </children>
+                                </HBox>
+                            </children>
+                        </VBox>
+                        <Separator>
+                            <VBox.margin><Insets bottom="8.0" top="16.0" /></VBox.margin>
+                        </Separator>
+                        <VBox spacing="4.0" VBox.vgrow="ALWAYS">
+                            <children>
+                                <!-- AKADEMİK Group -->
+                                <Label styleClass="menu-group-label" text="AKADEMİK" />
+                                <Button fx:id="menuDashboardBtn" maxWidth="Infinity" onAction="#showDashboard" styleClass="menu-btn, menu-btn-active" text="Genel Bakış" />
+                                <Button fx:id="menuStudentsBtn" maxWidth="Infinity" onAction="#showStudents" styleClass="menu-btn" text="Öğrenci İşleri" />
+                                <Button fx:id="menuTeachersBtn" maxWidth="Infinity" onAction="#showTeachers" styleClass="menu-btn" text="Öğretim Elemanları" />
+                                <Button fx:id="menuCoursesBtn" maxWidth="Infinity" onAction="#showCourses" styleClass="menu-btn" text="Ders Kayıt Sistemi" />
+                                <Button fx:id="menuGradesBtn" maxWidth="Infinity" onAction="#showGrades" styleClass="menu-btn" text="Not İşlemleri" />
+                                <Button fx:id="menuExamsBtn" maxWidth="Infinity" onAction="#showExams" styleClass="menu-btn" text="Sınav Planlayıcı" />
+
+                                <!-- FİNANSAL Group -->
+                                <Label styleClass="menu-group-label" text="FİNANSAL">
+                                    <VBox.margin><Insets top="16.0" /></VBox.margin>
+                                </Label>
+                                <Button fx:id="menuQueueBtn" maxWidth="Infinity" onAction="#showQueue" styleClass="menu-btn" text="Burs ve Yardım" />
+
+                                <!-- İLETİŞİM Group -->
+                                <Label styleClass="menu-group-label" text="İLETİŞİM">
+                                    <VBox.margin><Insets top="16.0" /></VBox.margin>
+                                </Label>
+                                <Button fx:id="menuMessagesBtn" maxWidth="Infinity" onAction="#showMessages" styleClass="menu-btn" text="Mesaj Kutusu" />
+                                <Button fx:id="menuAnnouncementBtn" maxWidth="Infinity" onAction="#showAnnouncements" styleClass="menu-btn" text="Duyuru Panosu" />
+                            </children>
+                        </VBox>
+                        <VBox spacing="10.0" styleClass="sidebar-footer">
+                            <children>
+                                <Button maxWidth="Infinity" onAction="#logout" styleClass="danger-btn" text="Güvenli Çıkış" />
+                            </children>
+                        </VBox>
+                    </children>
+                </VBox>
+            </left>
+
+            <center>
+                <VBox spacing="20.0" styleClass="root">
+                    <padding><Insets bottom="24.0" left="24.0" right="24.0" top="24.0" /></padding>
+                    <children>
+                        <!-- Header Bar -->
+                        <HBox alignment="CENTER_LEFT" spacing="15.0" styleClass="page-header-bar">
+                            <children>
+                                <VBox HBox.hgrow="ALWAYS">
+                                    <children>
+                                        <Label fx:id="breadcrumbLabel" styleClass="breadcrumb" text="Ana Sayfa &gt; Genel Bakış" />
+                                        <Label styleClass="section-header" text="Yönetim Paneli" />
+                                    </children>
+                                </VBox>
+                                <Label fx:id="welcomeRoleLabel" styleClass="sidebar-user" />
+                            </children>
+                        </HBox>
+
+                        <StackPane fx:id="contentStack" VBox.vgrow="ALWAYS">
+                            <children>
+                                <!-- Dashboard Pane -->
+                                <VBox fx:id="dashboardPane" spacing="20.0">
+                                    <children>
+                                        <!-- Stats Row -->
+                                        <HBox spacing="16.0">
+                                            <VBox styleClass="stat-card" HBox.hgrow="ALWAYS">
+                                                <Label text="Toplam Öğrenci" />
+                                                <Label fx:id="totalStudentsLabel" styleClass="stat-value" text="0" />
+                                                <Label styleClass="stat-trend-up" text="↑ 12% bu dönem" />
+                                            </VBox>
+                                            <VBox styleClass="stat-card" HBox.hgrow="ALWAYS">
+                                                <Label text="Akademisyen" />
+                                                <Label fx:id="totalTeachersLabel" styleClass="stat-value" text="0" />
+                                                <Label styleClass="stat-trend-up" text="↑ 3 yeni" />
+                                            </VBox>
+                                            <VBox styleClass="stat-card" HBox.hgrow="ALWAYS">
+                                                <Label text="Aktif Ders" />
+                                                <Label fx:id="totalCoursesLabel" styleClass="stat-value" text="0" />
+                                                <Label styleClass="stat-trend-up" text="↑ 5% artış" />
+                                            </VBox>
+                                            <VBox styleClass="stat-card" HBox.hgrow="ALWAYS">
+                                                <Label text="En Başarılı Öğrenci" />
+                                                <Label fx:id="topStudentLabel" styleClass="stat-value" text="-" />
+                                                <Label styleClass="stat-trend-up" text="GPA 4.00" />
+                                            </VBox>
+                                        </HBox>
+
+                                        <!-- Timeline + Chart Row -->
+                                        <HBox spacing="16.0" VBox.vgrow="ALWAYS">
+                                            <!-- Today's Schedule Timeline -->
+                                            <VBox styleClass="card" prefWidth="520.0" HBox.hgrow="ALWAYS">
+                                                <children>
+                                                    <HBox alignment="CENTER_LEFT">
+                                                        <Label styleClass="section-header" text="Bugünün Programı">
+                                                            <font><javafx.scene.text.Font size="16.0" /></font>
+                                                        </Label>
+                                                        <Region HBox.hgrow="ALWAYS" />
+                                                        <Label styleClass="badge badge-info" text="3 Etkinlik" />
+                                                    </HBox>
+                                                    <VBox fx:id="timelineContainer" spacing="0.0" VBox.vgrow="ALWAYS" />
+                                                </children>
+                                            </VBox>
+
+                                            <!-- GPA Chart -->
+                                            <VBox styleClass="card" prefWidth="420.0" HBox.hgrow="ALWAYS">
+                                                <children>
+                                                    <Label styleClass="section-header" text="GPA Trendi">
+                                                        <font><javafx.scene.text.Font size="16.0" /></font>
+                                                    </Label>
+                                                    <LineChart fx:id="gpaChart" VBox.vgrow="ALWAYS" animated="false" legendVisible="false" verticalGridLinesVisible="true" horizontalGridLinesVisible="true">
+                                                        <xAxis>
+                                                            <CategoryAxis label="Dönem" />
+                                                        </xAxis>
+                                                        <yAxis>
+                                                            <NumberAxis label="Ortalama" lowerBound="0.0" upperBound="4.0" tickUnit="0.5" />
+                                                        </yAxis>
+                                                    </LineChart>
+                                                </children>
+                                            </VBox>
+                                        </HBox>
+
+                                        <!-- Action Required Row -->
+                                        <VBox spacing="12.0">
+                                            <Label styleClass="section-header" text="İşlem Bekleyenler">
+                                                <font><javafx.scene.text.Font size="16.0" /></font>
+                                            </Label>
+                                            <HBox fx:id="actionCardsContainer" spacing="14.0" />
+                                        </VBox>
+
+                                        <!-- Recent Students Table -->
+                                        <VBox spacing="12.0" VBox.vgrow="ALWAYS">
+                                            <HBox alignment="CENTER_LEFT">
+                                                <Label styleClass="section-header" text="Son Öğrenci Kayıtları">
+                                                    <font><javafx.scene.text.Font size="16.0" /></font>
+                                                </Label>
+                                                <Region HBox.hgrow="ALWAYS" />
+                                                <Button onAction="#showStudents" styleClass="ghost-btn" text="Tümünü Gör" />
+                                            </HBox>
+                                            <TableView fx:id="studentTable" VBox.vgrow="ALWAYS">
+                                                <columns>
+                                                    <TableColumn fx:id="studentIdCol" text="No" />
+                                                    <TableColumn fx:id="studentNameCol" text="Ad Soyad" />
+                                                    <TableColumn fx:id="studentDeptCol" text="Bölüm" />
+                                                    <TableColumn fx:id="studentRegDateCol" text="Kayıt Tarihi" />
+                                                    <TableColumn fx:id="studentEctsCol" text="AKTS" />
+                                                    <TableColumn fx:id="studentGpaCol" text="GPA" />
+                                                    <TableColumn fx:id="studentStatusCol" text="Durum" />
+                                                    <TableColumn fx:id="studentActionsCol" text="İşlemler" />
+                                                </columns>
+                                                <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY" /></columnResizePolicy>
+                                            </TableView>
+                                        </VBox>
+                                    </children>
+                                </VBox>
+
+                                <!-- Students Pane -->
+                                <VBox fx:id="studentsPane" spacing="20.0" visible="false" managed="false">
+                                    <children>
+                                        <VBox spacing="12.0" styleClass="form-panel">
+                                            <Label fx:id="studentFormHeader" styleClass="section-header" text="Yeni Öğrenci Ekle" />
+                                            <HBox spacing="10.0">
+                                                <TextField fx:id="studentIdInput" promptText="Öğrenci No" styleClass="form-input" HBox.hgrow="ALWAYS" />
+                                                <TextField fx:id="studentNameInput" promptText="Ad Soyad" styleClass="form-input" HBox.hgrow="ALWAYS" />
+                                                <TextField fx:id="studentDeptInput" promptText="Bölüm" styleClass="form-input" HBox.hgrow="ALWAYS" />
+                                                <TextField fx:id="studentGpaInput" promptText="GPA" styleClass="form-input" HBox.hgrow="ALWAYS" />
+                                                <TextField fx:id="studentSemesterInput" promptText="Dönem" styleClass="form-input" HBox.hgrow="ALWAYS" />
+                                                <TextField fx:id="studentEctsInput" promptText="AKTS" styleClass="form-input" HBox.hgrow="ALWAYS" />
+                                            </HBox>
+                                            <HBox spacing="10.0" alignment="CENTER_LEFT">
+                                                <Button fx:id="studentActionBtn" onAction="#addStudent" styleClass="primary-btn" text="Ekle" />
+                                                <Button onAction="#sortStudentsByGpa" styleClass="secondary-btn" text="GPA Sırala" />
+                                                <Button onAction="#sortStudentsByName" styleClass="secondary-btn" text="İsim Sırala" />
+                                                <Button onAction="#undoAction" styleClass="secondary-btn" text="Geri Al" />
+                                                <Button onAction="#redoAction" styleClass="secondary-btn" text="İleri Al" />
+                                            </HBox>
+                                        </VBox>
+                                        <TableView fx:id="studentTable2" VBox.vgrow="ALWAYS">
+                                            <columns>
+                                                <TableColumn fx:id="studentIdCol2" text="No" />
+                                                <TableColumn fx:id="studentNameCol2" text="Ad Soyad" />
+                                                <TableColumn fx:id="studentDeptCol2" text="Bölüm" />
+                                                <TableColumn fx:id="studentRegDateCol2" text="Kayıt Tarihi" />
+                                                <TableColumn fx:id="studentEctsCol2" text="AKTS" />
+                                                <TableColumn fx:id="studentGpaCol2" text="GPA" />
+                                                <TableColumn fx:id="studentStatusCol2" text="Durum" />
+                                                <TableColumn fx:id="studentActionsCol2" text="İşlemler" />
+                                            </columns>
+                                            <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY" /></columnResizePolicy>
+                                        </TableView>
+                                    </children>
+                                </VBox>
+
+                                <!-- Teachers Pane -->
+                                <VBox fx:id="teachersPane" spacing="20.0" visible="false" managed="false">
+                                    <children>
+                                        <VBox spacing="12.0" styleClass="form-panel">
+                                            <Label fx:id="teacherFormHeader" styleClass="section-header" text="Yeni Öğretim Elemanı Ekle" />
+                                            <HBox spacing="10.0">
+                                                <TextField fx:id="teacherIdInput" promptText="Personel No" styleClass="form-input" HBox.hgrow="ALWAYS" />
+                                                <TextField fx:id="teacherNameInput" promptText="Ad Soyad" styleClass="form-input" HBox.hgrow="ALWAYS" />
+                                                <TextField fx:id="teacherTitleInput" promptText="Unvan" styleClass="form-input" HBox.hgrow="ALWAYS" />
+                                                <TextField fx:id="teacherDepartmentInput" promptText="Bölüm" styleClass="form-input" HBox.hgrow="ALWAYS" />
+                                                <TextField fx:id="teacherEmailInput" promptText="E-posta" styleClass="form-input" HBox.hgrow="ALWAYS" />
+                                            </HBox>
+                                            <HBox spacing="10.0" alignment="CENTER_LEFT">
+                                                <Button fx:id="teacherActionBtn" onAction="#addTeacher" styleClass="primary-btn" text="Ekle" />
+                                            </HBox>
+                                        </VBox>
+                                        <TableView fx:id="teacherTable" VBox.vgrow="ALWAYS">
+                                            <columns>
+                                                <TableColumn fx:id="teacherIdCol" text="No" />
+                                                <TableColumn fx:id="teacherNameCol" text="Ad Soyad" />
+                                                <TableColumn fx:id="teacherTitleCol" text="Unvan" />
+                                                <TableColumn fx:id="teacherDeptCol" text="Bölüm" />
+                                                <TableColumn fx:id="teacherEmailCol" text="E-posta" />
+                                                <TableColumn fx:id="teacherHireDateCol" text="İşe Başlama" />
+                                                <TableColumn fx:id="teacherActionsCol" text="İşlemler" />
+                                            </columns>
+                                            <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY" /></columnResizePolicy>
+                                        </TableView>
+                                    </children>
+                                </VBox>
+
+                                <!-- Courses Pane -->
+                                <VBox fx:id="coursesPane" spacing="20.0" visible="false" managed="false">
+                                    <children>
+                                        <VBox spacing="12.0" styleClass="form-panel">
+                                            <Label fx:id="courseFormHeader" styleClass="section-header" text="Yeni Ders Ekle" />
+                                            <HBox spacing="10.0">
+                                                <TextField fx:id="courseCodeInput" promptText="Ders Kodu" styleClass="form-input" HBox.hgrow="ALWAYS" />
+                                                <TextField fx:id="courseTitleInput" promptText="Ders Adı" styleClass="form-input" HBox.hgrow="ALWAYS" />
+                                                <TextField fx:id="courseCreditInput" promptText="Kredi" styleClass="form-input" HBox.hgrow="ALWAYS" />
+                                                <TextField fx:id="courseDeptInput" promptText="Bölüm" styleClass="form-input" HBox.hgrow="ALWAYS" />
+                                                <TextField fx:id="courseQuotaInput" promptText="Kontenjan" styleClass="form-input" HBox.hgrow="ALWAYS" />
+                                            </HBox>
+                                            <HBox spacing="10.0" alignment="CENTER_LEFT">
+                                                <Button fx:id="courseActionBtn" onAction="#addCourse" styleClass="primary-btn" text="Ekle" />
+                                            </HBox>
+                                        </VBox>
+                                        <TableView fx:id="courseTable" VBox.vgrow="ALWAYS">
+                                            <columns>
+                                                <TableColumn fx:id="courseCodeCol" text="Kod" />
+                                                <TableColumn fx:id="courseTitleCol" text="Ad" />
+                                                <TableColumn fx:id="courseDeptCol" text="Bölüm" />
+                                                <TableColumn fx:id="courseCreditCol" text="Kredi" />
+                                                <TableColumn fx:id="courseEctsCol" text="AKTS" />
+                                                <TableColumn fx:id="courseQuotaCol" text="Kontenjan" />
+                                                <TableColumn fx:id="courseClassroomCol" text="Sınıf" />
+                                                <TableColumn fx:id="courseScheduleCol" text="Program" />
+                                                <TableColumn fx:id="courseActionsCol" text="İşlemler" />
+                                            </columns>
+                                            <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY" /></columnResizePolicy>
+                                        </TableView>
+                                    </children>
+                                </VBox>
+
+                                <!-- Grades Pane -->
+                                <VBox fx:id="gradesPane" spacing="20.0" visible="false" managed="false">
+                                    <children>
+                                        <VBox spacing="12.0" styleClass="form-panel">
+                                            <Label styleClass="section-header" text="Not İşlemleri" />
+                                            <Label text="Öğrencilerin akademik başarı durumları ve harf notları aşağıda listelenmektedir." />
+                                        </VBox>
+                                        <TableView fx:id="gradeTable" VBox.vgrow="ALWAYS">
+                                            <columns>
+                                                <TableColumn fx:id="gradeStudentIdCol" text="Öğrenci No" />
+                                                <TableColumn fx:id="gradeStudentNameCol" text="Ad Soyad" />
+                                                <TableColumn fx:id="gradeStudentDeptCol" text="Bölüm" />
+                                                <TableColumn fx:id="gradeStudentGpaCol" text="GPA" />
+                                                <TableColumn fx:id="gradeLetterCol" text="Harf Notu" />
+                                                <TableColumn fx:id="gradeStatusCol" text="Başarı Durumu" />
+                                            </columns>
+                                            <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY" /></columnResizePolicy>
+                                        </TableView>
+                                    </children>
+                                </VBox>
+
+                                <!-- Exams Pane -->
+                                <VBox fx:id="examsPane" spacing="20.0" visible="false" managed="false">
+                                    <children>
+                                        <VBox spacing="12.0" styleClass="form-panel">
+                                            <Label styleClass="section-header" text="Sınav Planlayıcı" />
+                                            <Label text="Öncelik sıralamasına göre düzenlenmiş sınav takvimi." />
+                                        </VBox>
+                                        <TableView fx:id="examTable" VBox.vgrow="ALWAYS">
+                                            <columns>
+                                                <TableColumn fx:id="examCourseCol" text="Ders" />
+                                                <TableColumn fx:id="examDateCol" text="Tarih" />
+                                                <TableColumn fx:id="examPriorityCol" text="Öncelik" />
+                                                <TableColumn fx:id="examTypeCol" text="Tür" />
+                                            </columns>
+                                            <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY" /></columnResizePolicy>
+                                        </TableView>
+                                    </children>
+                                </VBox>
+
+                                <!-- Scholarship Queue Pane -->
+                                <VBox fx:id="queuePane" spacing="20.0" visible="false" managed="false">
+                                    <children>
+                                        <VBox spacing="12.0" styleClass="form-panel">
+                                            <Label styleClass="section-header" text="Burs ve Yardım Başvuruları" />
+                                            <HBox spacing="10.0">
+                                                <TextField fx:id="scholarshipIdInput" promptText="Başvuru No" styleClass="form-input" HBox.hgrow="ALWAYS" />
+                                                <TextField fx:id="scholarshipNameInput" promptText="Ad Soyad" styleClass="form-input" HBox.hgrow="ALWAYS" />
+                                                <TextField fx:id="scholarshipDeptInput" promptText="Bölüm" styleClass="form-input" HBox.hgrow="ALWAYS" />
+                                                <TextField fx:id="scholarshipGpaInput" promptText="GPA" styleClass="form-input" HBox.hgrow="ALWAYS" />
+                                            </HBox>
+                                            <HBox spacing="10.0" alignment="CENTER_LEFT">
+                                                <Button onAction="#addScholarship" styleClass="primary-btn" text="Sıraya Ekle" />
+                                                <Button onAction="#processScholarship" styleClass="secondary-btn" text="İşleme Al" />
+                                            </HBox>
+                                        </VBox>
+                                        <TableView fx:id="scholarshipTable" VBox.vgrow="ALWAYS">
+                                            <columns>
+                                                <TableColumn fx:id="scholarshipIdCol" text="Başvuru No" />
+                                                <TableColumn fx:id="scholarshipNameCol" text="Ad Soyad" />
+                                                <TableColumn fx:id="scholarshipDeptCol" text="Bölüm" />
+                                                <TableColumn fx:id="scholarshipGpaCol" text="GPA" />
+                                                <TableColumn fx:id="scholarshipDateCol" text="Başvuru Tarihi" />
+                                                <TableColumn fx:id="scholarshipStatusCol" text="Durum" />
+                                            </columns>
+                                            <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY" /></columnResizePolicy>
+                                        </TableView>
+                                    </children>
+                                </VBox>
+
+                                <!-- Messages Pane -->
+                                <VBox fx:id="messagesPane" spacing="20.0" visible="false" managed="false">
+                                    <children>
+                                        <VBox spacing="12.0" styleClass="form-panel">
+                                            <Label styleClass="section-header" text="Mesaj Kutusu" />
+                                            <HBox spacing="10.0">
+                                                <TextField fx:id="msgSenderInput" promptText="Gönderen" styleClass="form-input" HBox.hgrow="ALWAYS" />
+                                                <TextField fx:id="msgRecipientInput" promptText="Alıcı" styleClass="form-input" HBox.hgrow="ALWAYS" />
+                                                <TextField fx:id="msgSubjectInput" promptText="Konu" styleClass="form-input" HBox.hgrow="ALWAYS" />
+                                                <TextField fx:id="msgContentInput" promptText="İçerik" styleClass="form-input" HBox.hgrow="ALWAYS" />
+                                            </HBox>
+                                            <HBox spacing="10.0" alignment="CENTER_LEFT">
+                                                <Button onAction="#sendMessage" styleClass="primary-btn" text="Gönder" />
+                                            </HBox>
+                                        </VBox>
+                                        <TableView fx:id="messageTable" VBox.vgrow="ALWAYS">
+                                            <columns>
+                                                <TableColumn fx:id="msgSenderCol" text="Gönderen" />
+                                                <TableColumn fx:id="msgRecipientCol" text="Alıcı" />
+                                                <TableColumn fx:id="msgSubjectCol" text="Konu" />
+                                                <TableColumn fx:id="msgContentCol" text="İçerik" />
+                                                <TableColumn fx:id="msgDateCol" text="Tarih" />
+                                                <TableColumn fx:id="msgReadCol" text="Durum" />
+                                            </columns>
+                                            <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY" /></columnResizePolicy>
+                                        </TableView>
+                                    </children>
+                                </VBox>
+
+                                <!-- Announcement Stack Pane -->
+                                <VBox fx:id="announcementPane" spacing="20.0" visible="false" managed="false">
+                                    <children>
+                                        <VBox spacing="12.0" styleClass="form-panel">
+                                            <Label styleClass="section-header" text="Duyuru Panosu" />
+                                            <HBox spacing="10.0">
+                                                <TextField fx:id="announcementTitleInput" promptText="Duyuru Başlığı" styleClass="form-input" HBox.hgrow="ALWAYS" />
+                                                <TextField fx:id="announcementContentInput" promptText="İçerik" styleClass="form-input" HBox.hgrow="ALWAYS" />
+                                                <TextField fx:id="announcementAuthorInput" promptText="Yayınlayan" styleClass="form-input" HBox.hgrow="ALWAYS" />
+                                            </HBox>
+                                            <HBox spacing="10.0" alignment="CENTER_LEFT">
+                                                <Button onAction="#pushAnnouncement" styleClass="primary-btn" text="Yayınla" />
+                                                <Button onAction="#popAnnouncement" styleClass="secondary-btn" text="Son Duyuruyu Kaldır" />
+                                            </HBox>
+                                        </VBox>
+                                        <TableView fx:id="announcementTable" VBox.vgrow="ALWAYS">
+                                            <columns>
+                                                <TableColumn fx:id="announcementTitleCol" text="Başlık" />
+                                                <TableColumn fx:id="announcementContentCol" text="İçerik" />
+                                                <TableColumn fx:id="announcementDateCol" text="Tarih" />
+                                                <TableColumn fx:id="announcementAuthorCol" text="Yayınlayan" />
+                                            </columns>
+                                            <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY" /></columnResizePolicy>
+                                        </TableView>
+                                    </children>
+                                </VBox>
+                            </children>
+                        </StackPane>
+                    </children>
+                </VBox>
+            </center>
+        </BorderPane>
+    </children>
+</StackPane>
